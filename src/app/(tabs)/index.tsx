@@ -1,10 +1,9 @@
-import { View } from 'react-native';
-
+import { View, Text, Button } from 'react-native';
 //Map View
 export default function Index() {
   return (
-    <>
-      <View style={{ flex: 1 }} />
-    </>
+    <View style={{ flex: 1 }}>
+      <Text>Map</Text>
+    </View>
   );
 }

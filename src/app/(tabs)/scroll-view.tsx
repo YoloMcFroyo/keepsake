@@ -6,8 +6,8 @@ export default function ScrollView() {
     <>
       <RNScrollView>
         <MemoryCard />
-        <MemoryCard></MemoryCard>
-        <MemoryCard></MemoryCard>
+        <MemoryCard />
+        <MemoryCard />
       </RNScrollView>
     </>
   );
