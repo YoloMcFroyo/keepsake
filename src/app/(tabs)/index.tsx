@@ -1,4 +1,5 @@
-import { View, Text, Button } from 'react-native';
+import { Text, View } from 'react-native';
+
 //Map View
 export default function Index() {
   return (
