@@ -6,6 +6,24 @@ const memoryTypes = ['General', 'Restaurant', 'Reflection', 'Milestone', 'Fish C
 
 export default function CreateMemory() {
   const [selectedType, setSelectedType] = useState('General');
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+
+  function submitMemory() {
+    //regex to validate title and description
+    const titleValidation = /^[a-zA-Z0-9\s.,!?'"-]{1,100}$/;
+    const descriptionValidation = /^[a-zA-Z0-9\s.,!?'"-]{1,500}$/;
+
+    if (!titleValidation.test(title.trim())) {
+      alert('Please enter a valid title (1-100 characters).');
+      return;
+    }
+
+    if (!descriptionValidation.test(description.trim())) {
+      alert('Please enter a valid description (1-500 characters).');
+      return;
+    }
+  }
 
   return (
     <ScrollView
@@ -58,6 +76,8 @@ export default function CreateMemory() {
             placeholder="e.g. Sunset at the pier"
             placeholderTextColor={tokens.colors.textMuted}
             style={styles.input}
+            value={title}
+            onChangeText={setTitle}
           />
         </View>
 
@@ -69,6 +89,8 @@ export default function CreateMemory() {
             multiline
             textAlignVertical="top"
             style={[styles.input, styles.textArea]}
+            value={description}
+            onChangeText={setDescription}
           />
         </View>
 
@@ -131,7 +153,7 @@ export default function CreateMemory() {
       </View>
 
       <View style={styles.footerActions}>
-        <Pressable style={styles.primaryButtonLarge}>
+        <Pressable style={styles.primaryButtonLarge} onPress={submitMemory}>
           <Text style={styles.primaryButtonText}>Save Memory</Text>
         </Pressable>
       </View>
