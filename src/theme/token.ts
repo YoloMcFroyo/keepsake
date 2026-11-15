@@ -13,6 +13,7 @@ export const tokens = {
 
     // Interface colors
     background: '#FAFAF7',
+    formBackground: '#EAF1F5',
     surface: '#FFFFFF',
     atlasInk: '#142A3D',
     textMuted: '#526675',
