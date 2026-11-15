@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { ScrollView, StyleSheet, Text, TextInput, View, Pressable } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { supabase } from '../lib/supabase';
 import { tokens } from '../theme/token';
 
 const memoryTypes = ['General', 'Restaurant', 'Reflection', 'Milestone', 'Fish Catch'];
@@ -9,20 +10,42 @@ export default function CreateMemory() {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
 
-  function submitMemory() {
-    //regex to validate title and description
-    const titleValidation = /^[a-zA-Z0-9\s.,!?'"-]{1,100}$/;
-    const descriptionValidation = /^[a-zA-Z0-9\s.,!?'"-]{1,500}$/;
+  async function submitMemory() {
+    const cleanTitle = title.trim();
+    const cleanDescription = description.trim();
 
-    if (!titleValidation.test(title.trim())) {
-      alert('Please enter a valid title (1-100 characters).');
+    if (cleanTitle.length < 1 || cleanTitle.length > 160) {
+      alert('Title must be between 1 and 160 characters.');
       return;
     }
 
-    if (!descriptionValidation.test(description.trim())) {
-      alert('Please enter a valid description (1-500 characters).');
+    if (cleanDescription.length > 500) {
+      alert('Description must be 500 characters or less.');
       return;
     }
+
+    const { data, error: authError } = await supabase.auth.getUser();
+    if (authError) {
+      alert('Error checking authentication: ' + authError.message);
+      return;
+    }
+
+    const { error } = await supabase.from('moments').insert({
+      user_id: data.user.id,
+      type: selectedType.toLowerCase().replace(' ', '_'),
+      title: cleanTitle,
+      description: cleanDescription || null,
+    });
+
+    if (error) {
+      alert('Error saving memory: ' + error.message);
+      return;
+    }
+
+    alert('Memory saved successfully!');
+    setSelectedType('General');
+    setTitle('');
+    setDescription('');
   }
 
   return (
