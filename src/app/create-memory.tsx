@@ -1,6 +1,7 @@
 import * as ImagePicker from 'expo-image-picker';
 import { useState } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { uploadMemoryPhoto } from '../lib/media';
 import { supabase } from '../lib/supabase';
 import { tokens } from '../theme/token';
 
@@ -10,9 +11,12 @@ export default function CreateMemory() {
   const [selectedType, setSelectedType] = useState('General');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [photoUri, setPhotoUri] = useState<string | null>(null);
+  const [photo, setPhoto] = useState<ImagePicker.ImagePickerAsset | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   async function submitMemory() {
+    if (isSaving) return;
+
     const cleanTitle = title.trim();
     const cleanDescription = description.trim();
 
@@ -26,42 +30,79 @@ export default function CreateMemory() {
       return;
     }
 
-    const { data, error: authError } = await supabase.auth.getUser();
-    if (authError) {
-      alert('Error checking authentication: ' + authError.message);
-      return;
+    setIsSaving(true);
+    let momentSaved = false;
+
+    try {
+      const { data, error: authError } = await supabase.auth.getUser();
+
+      if (authError) throw authError;
+      if (!data.user) throw new Error('Please sign in again.');
+
+      const userId = data.user.id;
+
+      const { data: memory, error: memoryError } = await supabase
+        .from('moments')
+        .insert({
+          user_id: userId,
+          type: selectedType.toLowerCase().replace(' ', '_'),
+          title: cleanTitle,
+          description: cleanDescription || null,
+        })
+        .select('id')
+        .single();
+
+      if (memoryError) throw memoryError;
+
+      momentSaved = true;
+
+      if (photo) {
+        const storagePath = await uploadMemoryPhoto(photo, userId, memory.id);
+
+        const { error: mediaError } = await supabase.from('moment_media').insert({
+          user_id: userId,
+          moment_id: memory.id,
+          media_type: 'photo',
+          storage_path: storagePath,
+          sort_order: 0,
+        });
+
+        if (mediaError) throw mediaError;
+      }
+
+      alert('Memory saved successfully!');
+      resetForm();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+
+      if (momentSaved) {
+        alert('Memory saved, but the photo could not be attached: ' + message);
+        resetForm();
+      } else {
+        alert('Error saving memory: ' + message);
+      }
+    } finally {
+      setIsSaving(false);
     }
-
-    const { error } = await supabase.from('moments').insert({
-      user_id: data.user.id,
-      type: selectedType.toLowerCase().replace(' ', '_'),
-      title: cleanTitle,
-      description: cleanDescription || null,
-    });
-
-    if (error) {
-      alert('Error saving memory: ' + error.message);
-      return;
-    }
-
-    alert('Memory saved successfully!');
-    setSelectedType('General');
-    setTitle('');
-    setDescription('');
   }
 
-  const pickImage = async () => {
+  async function pickImage() {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
       allowsEditing: false,
     });
 
-    if (result.canceled) {
-      return;
-    }
+    if (result.canceled) return;
 
-    setPhotoUri(result.assets[0].uri);
-  };
+    setPhoto(result.assets[0]);
+  }
+
+  function resetForm() {
+    setSelectedType('General');
+    setTitle('');
+    setDescription('');
+    setPhoto(null);
+  }
 
   return (
     <ScrollView
@@ -179,12 +220,7 @@ export default function CreateMemory() {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Media</Text>
         <View style={styles.mediaCard}>
-          {photoUri && (
-            <Image
-              source={{ uri: photoUri }}
-              style={{ width: 150, height: 150, borderRadius: tokens.radius.md }}
-            />
-          )}
+          {photo && <Image source={{ uri: photo.uri }} style={styles.photoPreview} />}
           <Text style={styles.mediaTitle}>Photos & Videos</Text>
           <Text style={styles.mediaSubtitle}>
             Attach images or video that help bring this memory back to life.
@@ -197,7 +233,7 @@ export default function CreateMemory() {
 
       <View style={styles.footerActions}>
         <Pressable style={styles.primaryButtonLarge} onPress={submitMemory}>
-          <Text style={styles.primaryButtonText}>Save Memory</Text>
+          <Text style={styles.primaryButtonText}>{isSaving ? 'Saving...' : 'Save Memory'}</Text>
         </Pressable>
       </View>
     </ScrollView>
@@ -433,5 +469,10 @@ const styles = StyleSheet.create({
 
   footerActions: {
     marginTop: tokens.spacing.xs,
+  },
+  photoPreview: {
+    width: 150,
+    height: 150,
+    borderRadius: tokens.radius.md,
   },
 });
