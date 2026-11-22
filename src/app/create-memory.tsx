@@ -1,5 +1,6 @@
+import * as ImagePicker from 'expo-image-picker';
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { supabase } from '../lib/supabase';
 import { tokens } from '../theme/token';
 
@@ -9,6 +10,7 @@ export default function CreateMemory() {
   const [selectedType, setSelectedType] = useState('General');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+  const [photoUri, setPhotoUri] = useState<string | null>(null);
 
   async function submitMemory() {
     const cleanTitle = title.trim();
@@ -47,6 +49,19 @@ export default function CreateMemory() {
     setTitle('');
     setDescription('');
   }
+
+  const pickImage = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: false,
+    });
+
+    if (result.canceled) {
+      return;
+    }
+
+    setPhotoUri(result.assets[0].uri);
+  };
 
   return (
     <ScrollView
@@ -146,8 +161,7 @@ export default function CreateMemory() {
           <View style={styles.locationBeacon} />
           <View style={styles.locationInfo}>
             <Text style={styles.locationTitle}>Map Location Selected</Text>
-            <Text style={styles.locationMeta}>Latitude: 47.6136</Text>
-            <Text style={styles.locationMeta}>Longitude: -122.3525</Text>
+            <Text style={styles.locationMeta}>Location not selected</Text>
           </View>
         </View>
 
@@ -165,12 +179,18 @@ export default function CreateMemory() {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Media</Text>
         <View style={styles.mediaCard}>
+          {photoUri && (
+            <Image
+              source={{ uri: photoUri }}
+              style={{ width: 150, height: 150, borderRadius: tokens.radius.md }}
+            />
+          )}
           <Text style={styles.mediaTitle}>Photos & Videos</Text>
           <Text style={styles.mediaSubtitle}>
             Attach images or video that help bring this memory back to life.
           </Text>
-          <Pressable style={styles.primaryButton}>
-            <Text style={styles.primaryButtonText}>Add Media</Text>
+          <Pressable style={styles.primaryButton} onPress={pickImage}>
+            <Text style={styles.primaryButtonText}>Add Photo</Text>
           </Pressable>
         </View>
       </View>
